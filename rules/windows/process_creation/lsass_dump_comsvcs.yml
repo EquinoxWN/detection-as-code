@@ -1,0 +1,27 @@
+title: LSASS Memory Dump via comsvcs.dll MiniDump
+id: 49725884-10ed-5ca4-9ef3-98c3602b393e
+status: experimental
+description: >
+  Detects rundll32 calling the MiniDump export of comsvcs.dll, a built-in way to dump LSASS memory
+  and later extract credentials offline without dropping a tool such as Mimikatz.
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+  - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1003.001/T1003.001.md
+author: AUTHOR_NAME
+owner: detection-engineering
+date: 2026-09-30
+tags:
+  - attack.credential-access
+  - attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+      - 'comsvcs'
+      - 'minidump'
+  condition: selection
+falsepositives:
+  - None expected; legitimate crash dumps do not use this export.
+level: critical

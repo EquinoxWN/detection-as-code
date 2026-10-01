@@ -1,0 +1,39 @@
+title: PowerShell Launched With an Encoded Command
+id: 77d81db8-43ec-59b5-a62a-21860d455139
+status: experimental
+description: >
+  Detects PowerShell started with -EncodedCommand (or its short forms). Attackers base64-encode
+  scripts to hide them from command-line logging and simple string matching.
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+  - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1059.001/T1059.001.md
+author: AUTHOR_NAME
+owner: detection-engineering
+date: 2026-09-30
+tags:
+  - attack.execution
+  - attack.t1059.001
+  - attack.defense-evasion
+  - attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    - Image|endswith:
+        - '\powershell.exe'
+        - '\pwsh.exe'
+    - OriginalFileName:
+        - 'PowerShell.EXE'
+        - 'pwsh.dll'
+  selection_flag:
+    CommandLine|contains:
+      - ' -e '
+      - ' -en '
+      - ' -enc '
+      - ' -encodedcommand '
+      - ' -ec '
+  condition: 1 of selection_image and selection_flag
+falsepositives:
+  - Some management agents (SCCM, some RMM tools) launch encoded PowerShell; add their parent images as exceptions after review.
+level: high

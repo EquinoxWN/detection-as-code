@@ -1,0 +1,41 @@
+title: Web Server Process Spawning a Shell
+id: 0463d108-ce19-50d8-be63-1130accaa3b7
+status: experimental
+description: >
+  Detects IIS, Apache, Nginx or Tomcat worker processes starting cmd, PowerShell or reconnaissance
+  tools. A web server should serve pages, not run shells; this is the classic web-shell footprint.
+references:
+  - https://attack.mitre.org/techniques/T1505/003/
+  - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1505.003/T1505.003.md
+author: AUTHOR_NAME
+owner: detection-engineering
+date: 2026-09-30
+tags:
+  - attack.persistence
+  - attack.t1505.003
+  - attack.discovery
+  - attack.t1033
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith:
+      - '\w3wp.exe'
+      - '\httpd.exe'
+      - '\nginx.exe'
+      - '\tomcat.exe'
+      - '\tomcat9.exe'
+  selection_child:
+    Image|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\whoami.exe'
+      - '\net.exe'
+      - '\net1.exe'
+      - '\systeminfo.exe'
+  condition: selection_parent and selection_child
+falsepositives:
+  - Web applications that legitimately shell out (for example report generators); list them explicitly.
+level: high
