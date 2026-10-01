@@ -1,0 +1,37 @@
+title: Scheduled Task Created to Run From a User-Writable Folder
+id: 34865bea-2264-55f1-8e8f-e3d2bfe60de9
+status: experimental
+description: >
+  Detects schtasks /create pointing at an executable or script under AppData, Temp, Public or
+  ProgramData. Attackers use scheduled tasks for persistence from folders any user can write to.
+references:
+  - https://attack.mitre.org/techniques/T1053/005/
+  - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1053.005/T1053.005.md
+author: AUTHOR_NAME
+owner: detection-engineering
+date: 2026-09-30
+tags:
+  - attack.persistence
+  - attack.execution
+  - attack.t1053.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_create:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains: '/create'
+  selection_path:
+    CommandLine|contains:
+      - '\AppData\'
+      - '\Temp\'
+      - '\Users\Public\'
+      - '\ProgramData\'
+  filter_system_updaters:
+    ParentImage|endswith:
+      - '\GoogleUpdate.exe'
+      - '\MicrosoftEdgeUpdate.exe'
+  condition: selection_create and selection_path and not filter_system_updaters
+falsepositives:
+  - Per-user software updaters that install into AppData; add them to the filter after review.
+level: medium
