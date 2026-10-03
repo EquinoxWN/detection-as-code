@@ -7,7 +7,7 @@ description: >
 references:
   - https://attack.mitre.org/techniques/T1490/
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1490/T1490.md
-author: AUTHOR_NAME
+author: EquinoxWN
 owner: incident-response
 date: 2026-09-30
 tags:

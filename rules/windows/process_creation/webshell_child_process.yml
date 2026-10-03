@@ -7,7 +7,7 @@ description: >
 references:
   - https://attack.mitre.org/techniques/T1505/003/
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1505.003/T1505.003.md
-author: AUTHOR_NAME
+author: EquinoxWN
 owner: detection-engineering
 date: 2026-09-30
 tags:

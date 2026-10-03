@@ -7,7 +7,7 @@ description: >
 references:
   - https://attack.mitre.org/techniques/T1105/
   - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1105/T1105.md
-author: AUTHOR_NAME
+author: EquinoxWN
 owner: detection-engineering
 date: 2026-09-30
 tags:
