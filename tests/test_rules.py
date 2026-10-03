@@ -1,5 +1,8 @@
 """Every rule has valid metadata, fires on all its attack logs and stays quiet on benign logs."""
 
+import subprocess
+import sys
+
 import pytest
 from sigma.collection import SigmaCollection
 
@@ -62,3 +65,18 @@ def test_metadata_validation_catches_problems():
     assert any("tactic" in p for p in problems)
     assert any("condition" in p for p in problems)
     assert metadata_problems({})  # every required field missing
+
+
+def test_vulnerable_diskcache_is_never_loaded():
+    """pySigma caches ATT&CK data with diskcache (CVE-2025-69872); this project must never load it."""
+    code = (
+        "import sys\n"
+        "from sigma.collection import SigmaCollection\n"
+        "from detection_as_code.rules import RULES_DIR, evaluate, load_rules\n"
+        "texts = [p.read_text(encoding='utf-8') for p in sorted(RULES_DIR.rglob('*.yml'))]\n"
+        "SigmaCollection.from_yaml('\\n---\\n'.join(texts), collect_errors=True)\n"
+        "[evaluate(r) for r in load_rules()]\n"
+        "print('diskcache' in sys.modules, 'sigma.data.mitre_attack' in sys.modules)\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)  # noqa: S603
+    assert out.stdout.split() == ["False", "False"]

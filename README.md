@@ -86,7 +86,7 @@ Latest local run (full detail in [docs/results/m1.md](docs/results/m1.md)):
 
 | Check | Result |
 |---|---|
-| Test suite | 54 passed, 0 failed |
+| Test suite | 55 passed, 0 failed |
 | Rules valid according to the official pySigma parser | 6/6 |
 | Attack events detected | 18/18 |
 | Benign near misses flagged | 0/19 |
@@ -97,7 +97,7 @@ The fixtures are hand-written events reproducing the referenced Atomic Red Team 
 
 ```mermaid
 mindmap
-  root((54 tests pass))
+  root((55 tests pass))
     Sigma evaluator 32
       modifiers and wildcards
       and, or, not, 1 of
@@ -158,7 +158,7 @@ This is a learning and portfolio system, not a hosted production service. Everyt
 
 - Every GitHub Action is pinned to a commit SHA; workflows run read-only, without persisted credentials.
 - Dependabot proposes dependency and action updates weekly.
-- `ruff` with security (bandit) rules and `ruff format --check` on every push; `pip-audit` (`make audit`) in CI.
+- `ruff` with security (bandit) rules and `ruff format --check` on every push; `pip-audit` (`make audit`) in CI, with one documented exception: `diskcache` 5.6.3 (CVE-2025-69872, no fix released) is only used by pySigma's optional ATT&CK cache, which a test proves this project never loads.
 - Report vulnerabilities privately: see [SECURITY.md](SECURITY.md). To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
