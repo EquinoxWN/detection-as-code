@@ -67,8 +67,12 @@ def test_metadata_validation_catches_problems():
     assert metadata_problems({})  # every required field missing
 
 
-def test_vulnerable_diskcache_is_never_loaded():
-    """pySigma caches ATT&CK data with diskcache (CVE-2025-69872); this project must never load it."""
+def test_attack_data_cache_is_never_loaded():
+    """pySigma's optional ATT&CK cache unpickles files from disk; this project must never load it.
+
+    diskcache 5.6.3 (CVE-2025-69872) backed that cache up to pySigma 2.0.1; 2.0.2 moved to
+    diskcache-community. Either way, replaying the rules must not import the cache.
+    """
     code = (
         "import sys\n"
         "from sigma.collection import SigmaCollection\n"
@@ -76,7 +80,8 @@ def test_vulnerable_diskcache_is_never_loaded():
         "texts = [p.read_text(encoding='utf-8') for p in sorted(RULES_DIR.rglob('*.yml'))]\n"
         "SigmaCollection.from_yaml('\\n---\\n'.join(texts), collect_errors=True)\n"
         "[evaluate(r) for r in load_rules()]\n"
-        "print('diskcache' in sys.modules, 'sigma.data.mitre_attack' in sys.modules)\n"
+        "mods = ('diskcache', 'diskcache_community', 'sigma.data.mitre_attack')\n"
+        "print(*(m in sys.modules for m in mods))\n"
     )
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)  # noqa: S603
-    assert out.stdout.split() == ["False", "False"]
+    assert out.stdout.split() == ["False", "False", "False"]

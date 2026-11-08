@@ -7,6 +7,16 @@
 
 Part of my **Cyber Security** list · Python · YAML · core project
 
+## Proof it works
+
+Every rule is replayed against its labelled logs: all 18 attack events are detected and none of the 19 benign near misses is flagged (the command exits 1 if any rule misses or fires on benign data):
+
+![per-rule replay report](docs/proof/demo.jpg)
+
+Lint, the test suite and the dependency audit on the same run:
+
+![ruff, pytest and pip-audit](docs/proof/tests.jpg)
+
 ## Architecture
 
 **What M1 runs today:**
@@ -35,6 +45,12 @@ _Steps 1 and 2 are built and tested (M1); the rest is on the [roadmap](#roadmap)
 4. Rules that pass deploy automatically to the SIEM.
 5. An ATT&CK Navigator layer shows coverage and gaps.
 6. False-positive rates are tracked and exceptions are reviewed on a schedule.
+
+## Who it helps
+
+- **Who:** Detection engineers and SOC teams who write SIEM detections.
+- **The problem:** A detection edited by hand can silently stop firing on the attack it was written for, or start flagging normal admin activity, and nobody notices until an incident or an alert flood.
+- **How to use it:** Write each detection as a Sigma rule with ATT&CK tags, a level and an owner, add attack and benign JSON events next to it, and run `make test report`: the build fails when a rule misses an attack event, flags a benign one or breaks the metadata policy.
 
 ## Tech stack
 
@@ -158,7 +174,7 @@ This is a learning and portfolio system, not a hosted production service. Everyt
 
 - Every GitHub Action is pinned to a commit SHA; workflows run read-only, without persisted credentials.
 - Dependabot update pull requests are paused (`open-pull-requests-limit: 0`) so the repository keeps a single `main` branch; dependencies are updated by hand and checked by the CI audit.
-- `ruff` with security (bandit) rules and `ruff format --check` on every push; `pip-audit` (`make audit`) in CI, with one documented exception: `diskcache` 5.6.3 (CVE-2025-69872, no fix released) is only used by pySigma's optional ATT&CK cache, which a test proves this project never loads.
+- `ruff` with security (bandit) rules and `ruff format --check` on every push; `pip-audit` (`make audit`) in CI with no exceptions. pySigma 2.0.2 replaced `diskcache` 5.6.3 (CVE-2025-69872) with `diskcache-community`, so the earlier audit exception was removed; a test still proves the optional ATT&CK cache that uses it is never loaded.
 - Report vulnerabilities privately: see [SECURITY.md](SECURITY.md). To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
