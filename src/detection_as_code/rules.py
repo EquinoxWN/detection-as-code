@@ -76,8 +76,19 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     """Read one JSON object per non-empty line."""
     if not path.exists():
         return []
+    events = []
     with path.open(encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
+        for n, line in enumerate(f, 1):
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"{path}:{n}: invalid JSON: {e.msg}") from e
+            if not isinstance(event, dict):
+                raise ValueError(f"{path}:{n}: expected a JSON object")
+            events.append(event)
+    return events
 
 
 def metadata_problems(doc: dict[str, Any]) -> list[str]:
@@ -92,13 +103,17 @@ def metadata_problems(doc: dict[str, Any]) -> list[str]:
     if doc["level"] not in LEVELS:
         problems.append(f"level must be one of {LEVELS}")
     tags = doc["tags"]
+    if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+        return [*problems, "tags must be a list of strings"]
     if not any(TECHNIQUE_TAG.match(t) for t in tags):
         problems.append("needs at least one ATT&CK technique tag, e.g. attack.t1059.001")
     if not any(t in TACTIC_TAGS for t in tags):
         problems.append("needs at least one ATT&CK tactic tag, e.g. attack.execution")
-    if not str(doc["owner"]).strip():
+    if not isinstance(doc["owner"], str) or not doc["owner"].strip():
         problems.append("owner is empty")
-    if "condition" not in doc["detection"]:
+    if not isinstance(doc["detection"], dict):
+        problems.append("detection must be a mapping")
+    elif "condition" not in doc["detection"]:
         problems.append("detection has no condition")
     return problems
 
@@ -106,6 +121,8 @@ def metadata_problems(doc: dict[str, Any]) -> list[str]:
 def load_rule(path: Path, fixtures: Path = FIXTURES_DIR) -> Rule:
     """Parse and compile one rule and load its fixtures."""
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(doc, dict):
+        raise ValueError(f"{path.name}: expected one YAML mapping")
     problems = metadata_problems(doc)
     if problems:
         raise ValueError(f"{path.name}: " + "; ".join(problems))

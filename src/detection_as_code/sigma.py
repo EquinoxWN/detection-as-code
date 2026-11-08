@@ -66,6 +66,8 @@ def _field_predicate(key: str, expected: Any) -> Predicate:
     if unknown:
         raise UnsupportedSigmaError(f"modifier(s) {sorted(unknown)} on field {field!r}")
     values = expected if isinstance(expected, list) else [expected]
+    if any(isinstance(v, Mapping | list) for v in values):
+        raise UnsupportedSigmaError(f"field {field!r}: nested maps and lists are not values")
     matchers = [_value_matcher(v, modifiers) for v in values]
     combine = all if "all" in modifiers else any
     return lambda event: combine(m(event.get(field)) for m in matchers)
@@ -74,6 +76,8 @@ def _field_predicate(key: str, expected: Any) -> Predicate:
 def _selection_predicate(name: str, body: Any) -> Predicate:
     """Compile one named selection."""
     if isinstance(body, Mapping):
+        if not body:
+            raise UnsupportedSigmaError(f"selection {name!r} is empty")
         parts = [_field_predicate(k, v) for k, v in body.items()]
         return lambda event: all(p(event) for p in parts)
     if isinstance(body, list) and body and all(isinstance(b, Mapping) for b in body):
@@ -159,8 +163,12 @@ class _ConditionParser:
         if tok in {"1", "all"} and self._peek() == "of":
             self._take()
             pattern = self._take()
+            # As in Sigma, `them` and patterns without a leading `_` skip `_`-prefixed selections.
             names = [
-                n for n in self.selections if pattern == "them" or fnmatch.fnmatchcase(n, pattern)
+                n
+                for n in self.selections
+                if (pattern == "them" or fnmatch.fnmatchcase(n, pattern))
+                and (pattern.startswith("_") or not n.startswith("_"))
             ]
             if not names:
                 raise UnsupportedSigmaError(f"'{tok} of {pattern}' matches no selection")
