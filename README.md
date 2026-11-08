@@ -102,28 +102,34 @@ Latest local run (full detail in [docs/results/m1.md](docs/results/m1.md)):
 
 | Check | Result |
 |---|---|
-| Test suite | 55 passed, 0 failed |
+| Test suite | 86 passed, 0 failed |
 | Rules valid according to the official pySigma parser | 6/6 |
 | Attack events detected | 18/18 |
 | Benign near misses flagged | 0/19 |
 
 The fixtures are hand-written events reproducing the referenced Atomic Red Team command lines; recorded datasets and the Elastic-in-Docker check arrive in M2.
 
+Quality check against the 10 engineering rules, with a hand-mutation table: [docs/quality/2026-11-01.md](docs/quality/2026-11-01.md).
+
 ### Test map
 
 ```mermaid
 mindmap
-  root((55 tests pass))
-    Sigma evaluator 32
+  root((86 tests pass))
+    Sigma evaluator 40
       modifiers and wildcards
       and, or, not, 1 of
       escaped wildcards
+      them skips _ selections
       unsupported features fail loudly
-    Rules 21
+    Rules 42
       fire on 18 of 18 attack events
       quiet on 0 of 19 benign events
       valid Sigma per pySigma
       metadata policy enforced
+      bad YAML and JSONL rejected
+    Report 3
+      exit 1 on any failing rule
     Safety
       fixtures are inert text
       nothing is executed

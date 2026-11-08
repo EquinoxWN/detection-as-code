@@ -93,6 +93,9 @@ def test_escaped_wildcard_is_literal():
         {"sel": {"Image": "x"}, "condition": "other"},  # unknown selection
         {"sel": {"Image": "x"}, "condition": "(sel"},  # unbalanced
         {"sel": {"Image": "x"}, "condition": "1 of nothing*"},
+        {"sel": {}, "condition": "sel"},  # empty selection would match every event
+        {"sel": {"Image": {"nested": "x"}}, "condition": "sel"},  # nested map as a value
+        {"_filter": {"Image": "x"}, "condition": "1 of them"},  # `them` skips `_` names
     ],
 )
 def test_unsupported_features_fail_loudly(detection):
@@ -105,3 +108,31 @@ def test_trailing_backslash_with_contains_stays_literal():
     detection = {"sel": {"CommandLine|contains": "\\Temp\\"}, "condition": "sel"}
     assert matches(detection, {"CommandLine": r"run C:\Windows\Temp\x.cmd"})
     assert not matches(detection, {"CommandLine": r"run C:\Windows\Temp*"})
+
+
+def test_them_and_patterns_skip_underscore_selections():
+    """As in the Sigma spec and pySigma, `_`-prefixed selections only join `_` patterns."""
+    detection = {
+        "sel": {"Image|endswith": "powershell.exe"},
+        "_helper": {"Image|endswith": "cmd.exe"},
+        "condition": "1 of them",
+    }
+    assert not matches(detection)
+    detection["condition"] = "1 of *"
+    assert not matches(detection)
+    detection["condition"] = "1 of _h*"
+    assert matches(detection)
+
+
+@pytest.mark.parametrize("value", ["*", "one", "?one"])
+def test_missing_field_never_matches_a_pattern(value):
+    """A missing field is not the text 'None'."""
+    assert not matches({"sel": {"Missing": value}, "condition": "sel"})
+    assert not matches({"sel": {"Missing|contains": value}, "condition": "sel"})
+
+
+def test_boolean_value_matches_its_text_form():
+    detection = {"sel": {"Enabled": True}, "condition": "sel"}
+    assert matches(detection, {"Enabled": "true"})
+    assert matches(detection, {"Enabled": True})
+    assert not matches(detection, {"Enabled": "false"})

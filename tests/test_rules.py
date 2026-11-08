@@ -1,12 +1,22 @@
 """Every rule has valid metadata, fires on all its attack logs and stays quiet on benign logs."""
 
+import shutil
 import subprocess
 import sys
 
 import pytest
 from sigma.collection import SigmaCollection
 
-from detection_as_code.rules import RULES_DIR, evaluate, load_rules, metadata_problems
+from detection_as_code.rules import (
+    RULES_DIR,
+    Rule,
+    RuleResult,
+    _read_jsonl,
+    evaluate,
+    load_rule,
+    load_rules,
+    metadata_problems,
+)
 
 RULES = load_rules()
 
@@ -83,5 +93,106 @@ def test_attack_data_cache_is_never_loaded():
         "mods = ('diskcache', 'diskcache_community', 'sigma.data.mitre_attack')\n"
         "print(*(m in sys.modules for m in mods))\n"
     )
-    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)  # noqa: S603
+    out = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code], capture_output=True, text=True, check=True, timeout=120
+    )
     assert out.stdout.split() == ["False", "False", "False"]
+
+
+def _valid_doc(**changes):
+    """A rule document that passes the metadata policy, with optional changes."""
+    doc = {
+        "title": "t",
+        "id": "0b4f4b4e-1111-4111-8111-111111111111",
+        "status": "test",
+        "description": "d",
+        "author": "a",
+        "owner": "detection-engineering",
+        "date": "2026-11-01",
+        "level": "high",
+        "tags": ["attack.execution", "attack.t1059.001"],
+        "logsource": {"category": "process_creation", "product": "windows"},
+        "detection": {"sel": {"Image|endswith": "x.exe"}, "condition": "sel"},
+        "falsepositives": ["none"],
+    }
+    doc.update(changes)
+    return doc
+
+
+def test_valid_doc_has_no_problems():
+    assert metadata_problems(_valid_doc()) == []
+
+
+@pytest.mark.parametrize(
+    ("changes", "problem"),
+    [
+        ({"owner": None}, "owner is empty"),  # `owner:` left blank in YAML
+        ({"owner": "  "}, "owner is empty"),
+        ({"tags": ["attack.execution"]}, "technique tag"),
+        ({"tags": ["attack.execution", "attack.t10599"]}, "technique tag"),
+        ({"tags": ["attack.execution", "attack.t1059.0011"]}, "technique tag"),
+        ({"tags": "attack.execution attack.t1059"}, "list of strings"),
+        ({"tags": ["attack.execution", 1059]}, "list of strings"),
+        ({"detection": ["sel"]}, "detection must be a mapping"),
+    ],
+)
+def test_metadata_policy_rejects(changes, problem):
+    assert any(problem in p for p in metadata_problems(_valid_doc(**changes)))
+
+
+def test_techniques_are_upper_case_ids():
+    rule = Rule(path=RULES_DIR / "x.yml", doc=_valid_doc(), match=lambda e: True)
+    assert rule.techniques == ["T1059.001"]
+
+
+def test_duplicate_rule_ids_are_rejected(tmp_path):
+    src = next(iter(sorted(RULES_DIR.rglob("*.yml"))))
+    shutil.copy(src, tmp_path / "a.yml")
+    shutil.copy(src, tmp_path / "b.yml")
+    with pytest.raises(ValueError, match="duplicate id"):
+        load_rules(tmp_path, tmp_path)
+
+
+def test_rule_file_must_be_a_mapping(tmp_path):
+    path = tmp_path / "empty.yml"
+    path.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="expected one YAML mapping"):
+        load_rule(path, tmp_path)
+
+
+def test_jsonl_skips_blank_lines(tmp_path):
+    path = tmp_path / "attack.jsonl"
+    path.write_text('{"a": 1}\n\n  \n{"a": 2}\n', encoding="utf-8")
+    assert _read_jsonl(path) == [{"a": 1}, {"a": 2}]
+    assert _read_jsonl(tmp_path / "missing.jsonl") == []
+
+
+@pytest.mark.parametrize(
+    ("text", "error"),
+    [
+        ('{"a": 1}\n{"a": \n', r"attack\.jsonl:2: invalid JSON"),
+        ("[1, 2]\n", "expected a JSON object"),
+    ],
+)
+def test_jsonl_reports_bad_lines(tmp_path, text, error):
+    path = tmp_path / "attack.jsonl"
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(ValueError, match=error):
+        _read_jsonl(path)
+
+
+@pytest.mark.parametrize(
+    ("attack", "benign", "attack_hits", "benign_hits", "passed"),
+    [
+        ([{}], [{}], 1, 0, True),
+        ([], [{}], 0, 0, False),  # no attack logs: nothing proven
+        ([{}], [], 1, 0, False),  # no benign logs: nothing proven
+        ([{}, {}], [{}], 1, 0, False),  # one attack event missed
+        ([{}], [{}, {}], 1, 1, False),  # one benign event flagged
+    ],
+)
+def test_rule_result_passed(attack, benign, attack_hits, benign_hits, passed):
+    rule = Rule(
+        path=RULES_DIR / "x.yml", doc={}, match=lambda e: True, attack=attack, benign=benign
+    )
+    assert RuleResult(rule, attack_hits, benign_hits).passed is passed
