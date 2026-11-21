@@ -196,3 +196,13 @@ def test_rule_result_passed(attack, benign, attack_hits, benign_hits, passed):
         path=RULES_DIR / "x.yml", doc={}, match=lambda e: True, attack=attack, benign=benign
     )
     assert RuleResult(rule, attack_hits, benign_hits).passed is passed
+
+
+def test_duplicate_ids_differing_only_in_case_are_rejected(tmp_path):
+    src = next(iter(sorted(RULES_DIR.rglob("*.yml"))))
+    text = src.read_text(encoding="utf-8")
+    rule_id = str(load_rule(src).doc["id"])
+    shutil.copy(src, tmp_path / "a.yml")
+    (tmp_path / "b.yml").write_text(text.replace(rule_id, rule_id.upper()), encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate id"):
+        load_rules(tmp_path, tmp_path)

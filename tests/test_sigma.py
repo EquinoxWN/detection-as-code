@@ -96,6 +96,7 @@ def test_escaped_wildcard_is_literal():
         {"sel": {}, "condition": "sel"},  # empty selection would match every event
         {"sel": {"Image": {"nested": "x"}}, "condition": "sel"},  # nested map as a value
         {"_filter": {"Image": "x"}, "condition": "1 of them"},  # `them` skips `_` names
+        {"sel": {"Image|all": []}, "condition": "sel"},  # empty value list would match all
     ],
 )
 def test_unsupported_features_fail_loudly(detection):

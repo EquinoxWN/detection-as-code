@@ -25,3 +25,11 @@ CLAUDE.md
 .m2/
 .gocache/
 .gomodcache/
+
+# Secrets (never committed)
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.tfstate

@@ -3,7 +3,7 @@
 [![ci](https://github.com/EquinoxWN/detection-as-code/actions/workflows/ci.yml/badge.svg)](https://github.com/EquinoxWN/detection-as-code/actions/workflows/ci.yml)
 ![status](https://img.shields.io/badge/status-M1%20done%2C%20M2%20in%20progress-yellow)
 
-> Treats security alerts like software: detections written in Sigma, tested against real attack logs, deployed through CI.
+> Treats security alerts like software: detections written in Sigma, each replayed in CI against labelled attack and benign events before it can merge.
 
 Part of my **Cyber Security** list · Python · YAML · core project
 
@@ -40,7 +40,7 @@ flowchart LR
 _Steps 1 and 2 are built and tested (M1); the rest is on the [roadmap](#roadmap)._
 
 1. Each detection is a Sigma rule tagged with ATT&CK techniques, a severity and an owner.
-2. Every rule (including those from identity-attack-lab) has attack logs that should trigger it (from Atomic Red Team runs or OTRF datasets) and benign logs that should not.
+2. Every rule has attack events that should trigger it and benign near misses that should not; in M1 these are hand-written events that reproduce Atomic Red Team command lines (recorded datasets come in M2).
 3. CI loads the logs into Elastic in Docker, converts rules with pySigma, and asserts each rule fires on attacks and stays quiet on benign data.
 4. Rules that pass deploy automatically to the SIEM.
 5. An ATT&CK Navigator layer shows coverage and gaps.
@@ -102,7 +102,7 @@ Latest local run (full detail in [docs/results/m1.md](docs/results/m1.md)):
 
 | Check | Result |
 |---|---|
-| Test suite | 86 passed, 0 failed |
+| Test suite | 88 passed, 0 failed |
 | Rules valid according to the official pySigma parser | 6/6 |
 | Attack events detected | 18/18 |
 | Benign near misses flagged | 0/19 |
@@ -115,14 +115,14 @@ Quality check against the 10 engineering rules, with a hand-mutation table: [doc
 
 ```mermaid
 mindmap
-  root((86 tests pass))
-    Sigma evaluator 40
+  root((88 tests pass))
+    Sigma evaluator 41
       modifiers and wildcards
       and, or, not, 1 of
       escaped wildcards
       them skips _ selections
       unsupported features fail loudly
-    Rules 42
+    Rules 43
       fire on 18 of 18 attack events
       quiet on 0 of 19 benign events
       valid Sigma per pySigma
@@ -140,7 +140,7 @@ mindmap
 **M1** (≈15 h)
 - [x] Write `docs/rfc/0001-design.md`: problem, goals, non-goals, chosen design
 - [x] Each detection is a Sigma rule tagged with ATT&CK techniques, a severity and an owner.
-- [x] Every rule (including those from identity-attack-lab) has attack logs that should trigger it (from Atomic Red Team runs or OTRF datasets) and benign logs that should not.
+- [x] Every rule has attack events that should trigger it and benign events that should not (hand-written in M1, reproducing Atomic Red Team command lines).
 
 **M2** (≈20 h)
 - [ ] CI loads the logs into Elastic in Docker, converts rules with pySigma, and asserts each rule fires on attacks and stays quiet on benign data.

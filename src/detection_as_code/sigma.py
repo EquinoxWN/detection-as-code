@@ -66,6 +66,8 @@ def _field_predicate(key: str, expected: Any) -> Predicate:
     if unknown:
         raise UnsupportedSigmaError(f"modifier(s) {sorted(unknown)} on field {field!r}")
     values = expected if isinstance(expected, list) else [expected]
+    if not values:
+        raise UnsupportedSigmaError(f"field {field!r} has an empty value list")
     if any(isinstance(v, Mapping | list) for v in values):
         raise UnsupportedSigmaError(f"field {field!r}: nested maps and lists are not values")
     matchers = [_value_matcher(v, modifiers) for v in values]

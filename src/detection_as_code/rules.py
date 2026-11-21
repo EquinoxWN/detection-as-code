@@ -137,7 +137,7 @@ def load_rules(rules_dir: Path = RULES_DIR, fixtures: Path = FIXTURES_DIR) -> li
     rules = [load_rule(p, fixtures) for p in sorted(rules_dir.rglob("*.yml"))]
     seen: dict[str, Path] = {}
     for r in rules:
-        rid = str(r.doc["id"])
+        rid = str(uuid.UUID(str(r.doc["id"])))
         if rid in seen:
             raise ValueError(f"duplicate id {rid} in {seen[rid].name} and {r.path.name}")
         seen[rid] = r.path
